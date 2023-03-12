@@ -42,7 +42,7 @@
   (let ([width (pretty-print-json-indent)])
     (if (eq? width 'tabs)
         (write-chars tabs depth out-port)
-        (write-chars spaces (* depth width) out-port))))
+        (write-chars spaces (unsafe-fx* depth width) out-port))))
 
 (define (print-jsexpr js depth out-port in-color?)
   (cond
