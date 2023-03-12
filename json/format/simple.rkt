@@ -27,22 +27,22 @@
 (define (pretty-print-jsexpr js [out-port (current-output-port)])
   (void (print-jsexpr js 0 out-port (colorize? out-port))))
 
-(define spaces (make-string 32 #\space))
-(define tabs (make-string 32 #\tab))
+(define spaces (unsafe-bytes->immutable-bytes! (make-bytes 32 (unsafe-char->integer #\space))))
+(define tabs (unsafe-bytes->immutable-bytes! (make-bytes 32 (unsafe-char->integer #\tab))))
 
-(define (write-chars str n out-port)
-  (if (unsafe-fx<= n (unsafe-string-length str))
-      (write-string str out-port 0 n)
+(define (write-n-bytes bstr n out-port)
+  (if (unsafe-fx<= n (unsafe-bytes-length bstr))
+      (write-bytes bstr out-port 0 n)
       (begin
-        (write-string str out-port)
-        (write-chars str (unsafe-fx- n (unsafe-string-length str)) out-port))))
+        (write-bytes bstr out-port)
+        (write-n-bytes bstr (unsafe-fx- n (unsafe-bytes-length bstr)) out-port))))
 
 ; Write the appropriate number of spaces or tabs.
 (define (indent depth out-port)
   (let ([width (pretty-print-json-indent)])
     (if (eq? width 'tabs)
-        (write-chars tabs depth out-port)
-        (write-chars spaces (unsafe-fx* depth width) out-port))))
+        (write-n-bytes tabs depth out-port)
+        (write-n-bytes spaces (unsafe-fx* depth width) out-port))))
 
 (define (print-jsexpr js depth out-port in-color?)
   (cond
@@ -50,9 +50,9 @@
     ((list? js) (print-array js depth out-port in-color?))
     (else
      (when in-color?
-       (write-string (color-str (cond ((string? js) 'string) ((number? js) 'number) ((eq? js #t) 'true) ((eq? js #f) 'false) ((eq? (json-null) js) 'null))) out-port))
+       (write-bytes (color-bytestr (cond ((string? js) 'string) ((number? js) 'number) ((eq? js #t) 'true) ((eq? js #f) 'false) ((eq? (json-null) js) 'null))) out-port))
      (write-json js out-port #:encode (if (pretty-print-json-ascii-only) 'all 'control))
-     (when in-color? (write-string (reset-color) out-port)))))
+     (when in-color? (write-bytes (reset-color) out-port)))))
 
 (define (print-object-element key val pos depth out-port in-color?)
   (when (unsafe-fx> pos 0)
@@ -60,10 +60,10 @@
   (newline out-port)
   (when (unsafe-fx> depth 0)
     (indent depth out-port))
-  (when in-color? (write-string (color-str 'field) out-port))
+  (when in-color? (write-bytes (color-bytestr 'field) out-port))
   (write-json (symbol->immutable-string key) out-port #:encode (if (pretty-print-json-ascii-only) 'all 'control))
-  (when in-color? (write-string (reset-color) out-port))
-  (write-string " : " out-port)
+  (when in-color? (write-bytes (reset-color) out-port))
+  (write-bytes #" : " out-port)
   (print-jsexpr val depth out-port in-color?))
 
 (define (print-object obj depth out-port in-color?)
@@ -71,17 +71,17 @@
     ((= (hash-count obj) 0)
      (cond
        (in-color?
-        (write-string (color-str 'object) out-port)
-        (write-string "{}" out-port)
-        (write-string (reset-color) out-port))
+        (write-bytes (color-bytestr 'object) out-port)
+        (write-bytes #"{}" out-port)
+        (write-bytes (reset-color) out-port))
        (else
-        (write-string "{}" out-port))))
+        (write-bytes #"{}" out-port))))
     (else
      (cond
        (in-color?
-        (write-string (color-str 'object) out-port)
+        (write-bytes (color-bytestr 'object) out-port)
         (write-char #\{ out-port)
-        (write-string (reset-color) out-port))
+        (write-bytes (reset-color) out-port))
        (else
         (write-char #\{ out-port)))
      (if (pretty-print-json-sort-keys)
@@ -96,9 +96,9 @@
        (indent depth out-port))
      (cond
        (in-color?
-        (write-string (color-str 'object) out-port)
+        (write-bytes (color-bytestr 'object) out-port)
         (write-char #\} out-port)
-        (write-string (reset-color) out-port))
+        (write-bytes (reset-color) out-port))
        (else
         (write-char #\} out-port))))))
 
@@ -107,17 +107,17 @@
     ((null? lst)
      (cond
        (in-color?
-        (write-string (color-str 'array) out-port)
-        (write-string "[]" out-port)
-        (write-string (reset-color) out-port))
+        (write-bytes (color-bytestr 'array) out-port)
+        (write-bytes #"[]" out-port)
+        (write-bytes (reset-color) out-port))
        (else
-        (write-string "[]" out-port))))
+        (write-bytes #"[]" out-port))))
     (else
      (cond
        (in-color?
-        (write-string (color-str 'array) out-port)
+        (write-bytes (color-bytestr 'array) out-port)
         (write-char #\[ out-port)
-        (write-string (reset-color) out-port))
+        (write-bytes (reset-color) out-port))
        (else
         (write-char #\[ out-port)))
      (for ([elem (in-list lst)]
@@ -132,8 +132,8 @@
        (indent depth out-port))
      (cond
        (in-color?
-        (write-string (color-str 'array) out-port)
+        (write-bytes (color-bytestr 'array) out-port)
         (write-char #\] out-port)
-        (write-string (reset-color) out-port))
+        (write-bytes (reset-color) out-port))
        (else
         (write-char #\] out-port))))))

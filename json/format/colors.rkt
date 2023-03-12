@@ -3,7 +3,7 @@
 ; Internal module for parsing JQ_COLORS environment variable.
 
 (require racket/dict racket/function racket/match racket/string racket/unsafe/ops "config.rkt")
-(provide colorize? color-str reset-color)
+(provide colorize? color-bytestr reset-color)
 
 (define (make-color-map alist)
   (for/fold ([table (hasheqv)])
@@ -52,12 +52,13 @@
     (else default-colors)))
 
 (define cache (make-hash))
-(define (color-str type)
+(define (color-bytestr type)
   (let ([c (hash-ref color-table type)])
     (hash-ref! cache c
-               (thunk (unsafe-string->immutable-string! (format "\e[~A;~Am" (color-style c) (color-fg c)))))))
+               (thunk (unsafe-bytes->immutable-bytes!
+                       (string->bytes/utf-8 (format "\e[~A;~Am" (color-style c) (color-fg c))))))))
 
-(define (reset-color) "\e[0m")
+(define (reset-color) #"\e[0m")
 
 (define (colorize? port)
   (case (pretty-print-json-colorize)
