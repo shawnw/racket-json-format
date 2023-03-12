@@ -1,6 +1,8 @@
 json-format
 ===========
 
+![Build Status](https://github.com/shawnw/racket-json-format/actions/workflows/ci.yml/badge.svg)
+
 Modules for pretty-printing JSON values, for when the JSON module's
 `jsexpr->string` isn't good enough - like for human consumption, etc.
 
