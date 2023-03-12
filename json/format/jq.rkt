@@ -53,19 +53,24 @@
            (unless (jq-path)
              (raise (make-exn:fail:filesystem "jq executable not found" (current-continuation-marks))))
            (let*-values ([(jq-process jq-out jq-in jq-err)
-                          (apply subprocess #f #f 'stdout (jq-path) (make-jq-args out-port))]
+                          (apply subprocess (if (file-stream-port? out-port) out-port #f) #f 'stdout (jq-path) (make-jq-args out-port))]
                          [(writer) ; One thread to write the JSON to jq and close the input pipe when done
                           (thread (thunk
                                    (#,(if (eq? (syntax-e #'type) 'jsexpr?) #'write-json #'write-string) json jq-in)
                                    (newline jq-in)
                                    (close-output-port jq-in)))]
-                         [(reader) ; Thread to read the formatted JSON from jq and send it to the output port
-                          (thread (thunk
-                                   (copy-port jq-out out-port)
-                                   (close-input-port jq-out)))])
+                         [(reader)
+                          ; Thread to read the formatted JSON from jq and send it to the output port.
+                          ; If the output port is a type that subprocess can work with, it's used directly
+                          ; and this isn't needed.
+                          (if jq-out
+                              (thread (thunk
+                                       (copy-port jq-out out-port)
+                                       (close-input-port jq-out)))
+                              #f)])
              ; Wait for the threads to end and then for the jq subprocess to exit
              (thread-wait writer)
-             (thread-wait reader)
+             (when reader (thread-wait reader))
              (subprocess-wait jq-process)))))))
 
 (define-pretty-printer pretty-print-jsexpr jsexpr?)
