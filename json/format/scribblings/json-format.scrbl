@@ -5,13 +5,14 @@
 @title{Pretty Printing JSON}
 @author[@author+email["Shawn Wagner" "shawnw.mobile@gmail.com"]]
 
+Want JSON that's easier for humans to read instead of the compact form produced by @code{write-json} and @code{jsexpr->string}?
+Look no further!
+
 @local-table-of-contents[#:style 'immediate-only]
 
 @section{Simple formatting}
 
 Pure racket, very similar to JQ output (Except for adding a space before colons in objects).
-
-Does not currently support colorized output.
 
 @defmodule[json/format/simple]
 
@@ -19,25 +20,25 @@ Does not currently support colorized output.
 
  Returns the given jsexpr as a pretty-printed string.
 
- }
+}
 
 @defproc[(format-json [json string?]) string?]{
 
  Formats the given JSON value and returns it.
 
- }
+}
 
 @defproc[(pretty-print-jsexpr [js jsexpr?] [out output-port? (current-output-port)]) void?]{
 
  Writes out the formatted jsexpr as JSON to the given port.
 
- }
+}
 
 @defproc[(pretty-print-json [json string?] [out output-port? (current-output-port)]) void?]{
 
  Writes out the formatted JSON value to the given port.
 
- }
+}
 
 @section{JQ-powered formatting}
 
@@ -45,7 +46,7 @@ Uses an external @hyperlink["https://stedolan.github.io/jq/"]{jq} process to for
 
 @defmodule[json/format/jq]
 
-@defparam[jq-path path (or/c path-string? #f) #:value (find-executable-path "jq")] {
+@defparam[jq-path path (or/c path-string? #f) #:value (find-executable-path "jq")]{
 
 The path to the jq executable to use.
 
@@ -55,7 +56,7 @@ The path to the jq executable to use.
 
  Return the result of running the JSON represented by @code{js} through the given jq filter program.
 
-Technically not formatting, but it uses the same framework, so why not include it?
+ Technically not formatting, but it uses the same framework, so why not include it?
                                                       
 }
 
@@ -63,25 +64,25 @@ Technically not formatting, but it uses the same framework, so why not include i
 
  Returns the given jsexpr as a pretty-printed string.
 
- }
+}
 
 @defproc[(format-json [json string?]) string?]{
 
  Formats the given JSON value and returns it.
 
- }
+}
 
 @defproc[(pretty-print-jsexpr [js jsexpr?] [out output-port? (current-output-port)]) void?]{
 
  Writes out the formatted jsexpr as JSON to the given port.
 
- }
+}
 
 @defproc[(pretty-print-json [json string?] [out output-port? (current-output-port)]) void?]{
 
  Writes out the formatted JSON value to the given port.
 
- }
+}
 
 @section{Controlling formatting style}
 
@@ -111,7 +112,7 @@ All of the above formatter modules use these parameters unless otherwise noted.
 
  Controls when to colorize the output - when the output port is a terminal, always if otherwise true, or never if false.
 
- Colors as specified in the @hyperlink["https://stedolan.github.io/jq/manual/#Colors"]{same manner as jq}.
+ Colors are customized as in the @hyperlink["https://stedolan.github.io/jq/manual/#Colors"]{same manner as jq}.
 
 }
-                                                                                       
+

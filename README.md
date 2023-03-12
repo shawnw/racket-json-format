@@ -2,12 +2,13 @@ json-format
 ===========
 
 ![Build Status](https://github.com/shawnw/racket-json-format/actions/workflows/ci.yml/badge.svg)
+[![Scribble](https://img.shields.io/badge/Docs-Scribble-blue.svg)](https://docs.racket-lang.org/json-format/index.html)
 
 Modules for pretty-printing JSON values, for when the JSON module's
 `jsexpr->string` isn't good enough - like for human consumption, etc.
 
-
-Some usage examples:
+Usage examples
+--------------
 
     #lang racket/base
 
@@ -28,3 +29,10 @@ Some usage examples:
       (displayln "Using jq to modify the object:")
       (simple-pretty-print-jsexpr (jq-jsexpr-transform json ".lion |= [ .[] | . + 1 ]"))
       (newline))
+
+
+To-Do
+-----
+
+* A fancy printer that doesn't use as much vertical space - prints small
+  arrays and objects on one line, for example.
