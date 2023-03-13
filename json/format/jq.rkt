@@ -12,9 +12,12 @@
   [jq-filter (parameter/c string?)]
   [jsexpr-transform (-> jsexpr? string? jsexpr?)]
   [jsexpr->pretty-json (-> jsexpr? string?)]
+  [jsexpr->pretty-json/bytes (-> jsexpr? bytes?)]
   [format-json (-> string? string?)]
+  [format-json/bytes (-> bytes? bytes?)]
   [pretty-print-jsexpr (->* (jsexpr?) (output-port?) void?)]
-  [pretty-print-json (->* (string?) (output-port?) void?)]))
+  [pretty-print-json (->* (string?) (output-port?) void?)]
+  [pretty-print-json/bytes (->* (bytes?) (output-port?) void?)]))
 
 (define jq-path (make-parameter (find-executable-path "jq")))
 (define jq-filter (make-parameter "."))
@@ -29,9 +32,17 @@
 (define (jsexpr->pretty-json js)
   (call-with-output-string (curry pretty-print-jsexpr js)))
 
+; Like jsexpr->bytes but nicely formatted output
+(define (jsexpr->pretty-json/bytes js)
+  (call-with-output-bytes (curry pretty-print-jsexpr js)))
+
 ; Reformat JSON text into nicely formatted JSON
 (define (format-json json)
   (call-with-output-string (curry pretty-print-json json)))
+
+; Reformat JSON bytestring into nicely formatted JSON
+(define (format-json/bytes json)
+  (call-with-output-bytes (curry pretty-print-json/bytes json)))
 
 (define (make-jq-args out-port)
   (append (if (pretty-print-json-ascii-only) '("--ascii-output") '())
@@ -56,7 +67,12 @@
                           (apply subprocess (if (file-stream-port? out-port) out-port #f) #f 'stdout (jq-path) (make-jq-args out-port))]
                          [(writer) ; One thread to write the JSON to jq and close the input pipe when done
                           (thread (thunk
-                                   (#,(if (eq? (syntax-e #'type) 'jsexpr?) #'write-json #'write-string) json jq-in)
+                                   (#,(case (syntax-e #'type)
+                                        ((jsexpr?) #'write-json)
+                                        ((string?) #'write-string)
+                                        ((bytes?)  #'write-bytes)
+                                        (else (raise-syntax-error (syntax-e #'name) "called with unsupported data type" #'type)))
+                                    json jq-in)
                                    (newline jq-in)
                                    (close-output-port jq-in)))]
                          [(reader)
@@ -75,3 +91,5 @@
 
 (define-pretty-printer pretty-print-jsexpr jsexpr?)
 (define-pretty-printer pretty-print-json string?)
+(define-pretty-printer pretty-print-json/bytes bytes?)
+

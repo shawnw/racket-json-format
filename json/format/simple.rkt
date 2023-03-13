@@ -9,20 +9,34 @@
 (provide
  (contract-out
   [jsexpr->pretty-json (-> jsexpr? string?)]
+  [jsexpr->pretty-json/bytes (-> jsexpr? bytes?)]
   [format-json (-> string? string?)]
+  [format-json/bytes (-> bytes? bytes?)]
   [pretty-print-jsexpr (->* (jsexpr?) (output-port?) void?)]
-  [pretty-print-json (->* (string?) (output-port?) void?)]))
+  [pretty-print-json (->* (string?) (output-port?) void?)]
+  [pretty-print-json/bytes (->* (bytes?) (output-port?) void?)]))
 
 ; Like jsexpr->string but nicely formatted output
 (define (jsexpr->pretty-json js)
   (call-with-output-string (curry pretty-print-jsexpr js)))
 
+; Like jsexpr->bytes but nicely formatted output
+(define (jsexpr->pretty-json/bytes js)
+  (call-with-output-bytes (curry pretty-print-jsexpr js)))
+
 ; Reformat JSON text into nicely formatted JSON
 (define (format-json json)
   (call-with-output-string (curry pretty-print-json json)))
 
+; Reformat JSON bytestring into nicely formatted JSON
+(define (format-json/bytes json)
+  (call-with-output-bytes (curry pretty-print-json/bytes json)))
+
 (define (pretty-print-json json [out-port (current-output-port)])
   (pretty-print-jsexpr (string->jsexpr json) out-port))
+
+(define (pretty-print-json/bytes json [out-port (current-output-port)])
+  (pretty-print-jsexpr (bytes->jsexpr json) out-port))
 
 (define (pretty-print-jsexpr js [out-port (current-output-port)])
   (void (print-jsexpr js 0 out-port (colorize? out-port))))
