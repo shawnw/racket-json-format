@@ -10,7 +10,9 @@ Look no further!
 
 @local-table-of-contents[#:style 'immediate-only]
 
-@section{Simple formatting}
+@section{Available formatters}
+
+@subsection{Simple formatting}
 
 Pure racket, very similar to JQ output (Except for adding a space before colons in objects).
 
@@ -22,7 +24,19 @@ Pure racket, very similar to JQ output (Except for adding a space before colons 
 
 }
 
+@defproc[(jsexpr->pretty-json/bytes [js jsexpr?]) bytes?]{
+
+ Returns the given jsexpr as a pretty-printed byte string.
+
+}
+
 @defproc[(format-json [json string?]) string?]{
+
+ Formats the given JSON value and returns it.
+
+}
+
+@defproc[(format-json/bytes [json bytes?]) bytes?]{
 
  Formats the given JSON value and returns it.
 
@@ -40,7 +54,73 @@ Pure racket, very similar to JQ output (Except for adding a space before colons 
 
 }
 
-@section{JQ-powered formatting}
+@defproc[(pretty-print-json/bytes [json bytes?] [out output-port? (current-output-port)]) void?]{
+
+ Writes out the formatted JSON value to the given port.
+
+}
+
+@subsection{Smart formatting}
+
+Tries to use less vertical space by printing small arrays and objects on a single line. Experimental and not very well tested.
+
+@defmodule[json/format/smart]
+
+@defparam[pretty-print-json-line-width width exact-positive-integer? #:value 80]{
+
+ The number of columns to use when deciding if an aggregate value can be printed on one line.
+
+}
+
+@defparam[pretty-print-json-tab-width width exact-positive-integer? #:value 8]{
+
+ How many columns a tab takes up when calculating width.
+
+}
+
+@defproc[(jsexpr->pretty-json [js jsexpr?]) string?]{
+
+ Returns the given jsexpr as a pretty-printed string.
+
+}
+
+@defproc[(jsexpr->pretty-json/bytes [js jsexpr?]) bytes?]{
+
+ Returns the given jsexpr as a pretty-printed bytestring.
+
+}
+
+@defproc[(format-json [json string?]) string?]{
+
+ Formats the given JSON value and returns it.
+
+}
+
+@defproc[(format-json/bytes [json bytes?]) bytes?]{
+
+ Formats the given JSON value and returns it.
+
+}
+
+@defproc[(pretty-print-jsexpr [js jsexpr?] [out output-port? (current-output-port)]) void?]{
+
+ Writes out the formatted jsexpr as JSON to the given port.
+
+}
+
+@defproc[(pretty-print-json [json string?] [out output-port? (current-output-port)]) void?]{
+
+ Writes out the formatted JSON value to the given port.
+
+}
+
+@defproc[(pretty-print-json/bytes [json bytes?] [out output-port? (current-output-port)]) void?]{
+
+ Writes out the formatted JSON value to the given port.
+
+}
+
+@subsection{JQ-powered formatting}
 
 Uses an external @hyperlink["https://stedolan.github.io/jq/"]{jq} process to format JSON. Also allows you to run arbitrary jsexprs through JQ.
 
@@ -57,7 +137,7 @@ The path to the jq executable to use.
  Return the result of running the JSON represented by @code{js} through the given jq filter program.
 
  Technically not formatting, but it uses the same framework, so why not include it?
-                                                      
+
 }
 
 @defproc[(jsexpr->pretty-json [js jsexpr?]) string?]{
@@ -66,7 +146,19 @@ The path to the jq executable to use.
 
 }
 
+@defproc[(jsexpr->pretty-json/bytes [js jsexpr?]) bytes?]{
+
+ Returns the given jsexpr as a pretty-printed bytestring.
+
+}
+
 @defproc[(format-json [json string?]) string?]{
+
+ Formats the given JSON value and returns it.
+
+}
+
+@defproc[(format-json/bytes [json bytes?]) bytes?]{
 
  Formats the given JSON value and returns it.
 
@@ -79,6 +171,12 @@ The path to the jq executable to use.
 }
 
 @defproc[(pretty-print-json [json string?] [out output-port? (current-output-port)]) void?]{
+
+ Writes out the formatted JSON value to the given port.
+
+}
+
+@defproc[(pretty-print-json/bytes [json bytes?] [out output-port? (current-output-port)]) void?]{
 
  Writes out the formatted JSON value to the given port.
 

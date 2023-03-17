@@ -64,7 +64,7 @@
     ((list? js) (print-array js depth out-port in-color?))
     (else
      (when in-color?
-       (write-bytes (color-bytestr (cond ((string? js) 'string) ((number? js) 'number) ((eq? js #t) 'true) ((eq? js #f) 'false) ((eq? (json-null) js) 'null))) out-port))
+       (write-bytes (color-bytestr (highlight-type js)) out-port))
      (write-json js out-port #:encode (if (pretty-print-json-ascii-only) 'all 'control))
      (when in-color? (write-bytes (reset-color) out-port)))))
 

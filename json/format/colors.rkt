@@ -2,8 +2,8 @@
 
 ; Internal module for parsing JQ_COLORS environment variable.
 
-(require racket/dict racket/function racket/match racket/string racket/unsafe/ops "config.rkt")
-(provide colorize? color-bytestr reset-color)
+(require racket/dict racket/function racket/match racket/string racket/unsafe/ops json "config.rkt")
+(provide colorize? color-bytestr reset-color highlight-type)
 
 (define (make-color-map alist)
   (for/fold ([table (hasheqv)])
@@ -19,6 +19,16 @@
 (struct color (style fg) #:transparent)
 (define (make-color fg #:style [style 'default])
   (color (hash-ref color-map style) (hash-ref color-map fg)))
+
+(define (highlight-type js)
+  (cond
+    ((string? js) 'string)
+    ((number? js) 'number)
+    ((eq? js #t) 'true)
+    ((eq? js #f) 'false)
+    ((eq? js (json-null)) 'null)
+    ((hash? js) 'object)
+    ((list? js) 'array)))
 
 (define default-colors
   (hasheq
