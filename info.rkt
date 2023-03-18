@@ -1,6 +1,6 @@
 #lang info
 (define collection 'multi)
-(define deps '("base" ("racket" #:version "8.4") "unicode-breaks"))
+(define deps '("base" ("racket" #:version "8.4") "unicode-breaks" "soup-lib"))
 (define build-deps '("scribble-lib" "racket-doc"))
 ;(define scribblings '(("json/format/scribblings/json-format.scrbl" ())))
 (define pkg-desc "JSON pretty printers")

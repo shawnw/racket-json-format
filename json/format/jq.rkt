@@ -2,7 +2,7 @@
 
 ; Format JSON by piping it to a jq instance with a filter of . and reading its output.
 
-(require racket/contract racket/function racket/port json
+(require racket/contract racket/function racket/port json soup-lib/parameter
          "config.rkt"
          (for-syntax racket/base))
 
@@ -19,8 +19,8 @@
   [pretty-print-json (->* (string?) (output-port?) void?)]
   [pretty-print-json/bytes (->* (bytes?) (output-port?) void?)]))
 
-(define jq-path (make-parameter (find-executable-path "jq")))
-(define jq-filter (make-parameter "."))
+(define-parameter jq-path (find-executable-path "jq"))
+(define-parameter jq-filter ".")
 
 (define (jsexpr-transform js filter)
   (parameterize

@@ -3,7 +3,7 @@
 ; Simple pure-Racket JSON formatter. Tries to use less vertical space than the others.
 
 (require racket/bytes racket/contract racket/function racket/port racket/string racket/symbol racket/unsafe/ops
-         json unicode-breaks
+         json unicode-breaks soup-lib/parameter
          "config.rkt" "colors.rkt")
 
 (define (exact-positive-fixnum? x)
@@ -21,8 +21,8 @@
   [pretty-print-json (->* (string?) (output-port?) void?)]
   [pretty-print-json/bytes (->* (bytes?) (output-port?) void?)]))
 
-(define pretty-print-json-line-width (make-parameter 80))
-(define pretty-print-json-tab-width (make-parameter 8))
+(define-parameter pretty-print-json-line-width 80)
+(define-parameter pretty-print-json-tab-width 8)
 
 ; Like jsexpr->string but nicely formatted output
 (define (jsexpr->pretty-json js)
