@@ -39,7 +39,7 @@
   (pretty-print-jsexpr (bytes->jsexpr json) out-port))
 
 (define (pretty-print-jsexpr js [out-port (current-output-port)])
-  (void (print-jsexpr js 0 out-port (colorize? out-port))))
+  (void (print-jsexpr js 0 out-port (colorize? out-port) (if (pretty-print-json-ascii-only) 'all 'control))))
 
 (define spaces (unsafe-bytes->immutable-bytes! (make-bytes 32 (unsafe-char->integer #\space))))
 (define tabs (unsafe-bytes->immutable-bytes! (make-bytes 32 (unsafe-char->integer #\tab))))
@@ -58,29 +58,29 @@
         (write-n-bytes tabs depth out-port)
         (write-n-bytes spaces (unsafe-fx* depth width) out-port))))
 
-(define (print-jsexpr js depth out-port in-color?)
+(define (print-jsexpr js depth out-port in-color? ascii?)
   (cond
-    ((hash? js) (print-object js depth out-port in-color?))
-    ((list? js) (print-array js depth out-port in-color?))
+    ((hash? js) (print-object js depth out-port in-color? ascii?))
+    ((list? js) (print-array js depth out-port in-color? ascii?))
     (else
      (when in-color?
        (write-bytes (color-bytestr (highlight-type js)) out-port))
-     (write-json js out-port #:encode (if (pretty-print-json-ascii-only) 'all 'control))
+     (write-json js out-port #:encode ascii?)
      (when in-color? (write-bytes (reset-color) out-port)))))
 
-(define (print-object-element key val pos depth out-port in-color?)
+(define (print-object-element key val pos depth out-port in-color? ascii?)
   (when (unsafe-fx> pos 0)
     (write-char #\, out-port))
   (newline out-port)
   (when (unsafe-fx> depth 0)
     (indent depth out-port))
   (when in-color? (write-bytes (color-bytestr 'field) out-port))
-  (write-json (symbol->immutable-string key) out-port #:encode (if (pretty-print-json-ascii-only) 'all 'control))
+  (write-json (symbol->immutable-string key) out-port #:encode ascii?)
   (when in-color? (write-bytes (reset-color) out-port))
   (write-bytes #" : " out-port)
-  (print-jsexpr val depth out-port in-color?))
+  (print-jsexpr val depth out-port in-color? ascii?))
 
-(define (print-object obj depth out-port in-color?)
+(define (print-object obj depth out-port in-color? ascii?)
   (cond
     ((= (hash-count obj) 0)
      (cond
@@ -101,10 +101,10 @@
      (if (pretty-print-json-sort-keys)
          (for ([elem (hash->list obj #t)]
                [i (in-naturals)])
-           (print-object-element (unsafe-car elem) (unsafe-cdr elem) i (unsafe-fx+ depth 1) out-port in-color?))
+           (print-object-element (unsafe-car elem) (unsafe-cdr elem) i (unsafe-fx+ depth 1) out-port in-color? ascii?))
          (for ([(k v) (in-hash obj)]
                [i (in-naturals)])
-           (print-object-element k v i (unsafe-fx+ depth 1) out-port in-color?)))
+           (print-object-element k v i (unsafe-fx+ depth 1) out-port in-color? ascii?)))
      (newline out-port)
      (when (unsafe-fx> depth 0)
        (indent depth out-port))
@@ -116,7 +116,7 @@
        (else
         (write-char #\} out-port))))))
 
-(define (print-array lst depth out-port in-color?)
+(define (print-array lst depth out-port in-color? ascii?)
   (cond
     ((null? lst)
      (cond
@@ -140,7 +140,7 @@
          (write-char #\, out-port))
        (newline out-port)
        (indent (unsafe-fx+ depth 1) out-port)
-       (print-jsexpr elem (unsafe-fx+ depth 1) out-port in-color?))
+       (print-jsexpr elem (unsafe-fx+ depth 1) out-port in-color? ascii?))
      (newline out-port)
      (when (unsafe-fx> depth 0)
        (indent depth out-port))

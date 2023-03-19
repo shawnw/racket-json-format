@@ -3,7 +3,7 @@
 ; Simple pure-Racket JSON formatter. Tries to use less vertical space than the others.
 
 (require racket/bytes racket/contract racket/function racket/port racket/string racket/symbol racket/unsafe/ops
-         json unicode-breaks soup-lib/parameter
+         json unicode-breaks soup-lib/parameter srfi/175
          "config.rkt" "colors.rkt")
 
 (define (exact-positive-fixnum? x)
@@ -47,7 +47,7 @@
   (pretty-print-jsexpr (bytes->jsexpr json) out-port))
 
 (define (pretty-print-jsexpr js [out-port (current-output-port)])
-  (void (print-jsexpr js 0 0 out-port (colorize? out-port))))
+  (void (print-jsexpr js 0 0 out-port (colorize? out-port) (if (pretty-print-json-ascii-only) 'all 'control))))
 
 (define spaces (unsafe-bytes->immutable-bytes! (make-bytes 32 (unsafe-char->integer #\space))))
 (define tabs (unsafe-bytes->immutable-bytes! (make-bytes 32 (unsafe-char->integer #\tab))))
@@ -72,14 +72,14 @@
         (unsafe-fx* depth (pretty-print-json-tab-width))
         (unsafe-fx* width depth))))
 
-(define (print-jsexpr js depth width out-port in-color?)
+(define (print-jsexpr js depth width out-port in-color? ascii?)
   (cond
-    ((hash? js) (print-object js depth width out-port in-color?))
-    ((list? js) (print-array js depth width out-port in-color?))
+    ((hash? js) (print-object js depth width out-port in-color? ascii?))
+    ((list? js) (print-array js depth width out-port in-color? ascii?))
     (else
      (when in-color?
        (write-bytes (color-bytestr (highlight-type js)) out-port))
-     (write-json js out-port #:encode (if (pretty-print-json-ascii-only) 'all 'control))
+     (write-json js out-port #:encode (if ascii? 'all 'control))
      (when in-color? (write-bytes (reset-color) out-port)))))
 
 (define (json-atom? js)
@@ -98,13 +98,15 @@
      2)
     (else 1)))
 
-(define (string-display-width str)
-  (for/sum ([grapheme (in-graphemes str)])
-    (char-display-width (unsafe-string-ref grapheme 0))))
-  
-(define (print-object-element key val pos depth width out-port in-color?)
-  (let ([key (jsexpr->string (symbol->immutable-string key) #:encode (if (pretty-print-json-ascii-only) 'all 'control))])
-    (when (> pos 0)
+(define (string-display-width str ascii?)
+  (if (or (eq? ascii? 'all) (ascii-string? str))
+      (unsafe-string-length str)
+      (for/sum ([grapheme (in-graphemes str)])
+        (char-display-width (unsafe-string-ref grapheme 0)))))
+
+(define (print-object-element key val pos depth width out-port in-color? ascii?)
+  (let ([key (jsexpr->string (symbol->immutable-string key) #:encode ascii?)])
+    (when (unsafe-fx> pos 0)
       (write-char #\, out-port))
     (newline out-port)
     (when (unsafe-fx> depth 0)
@@ -113,9 +115,9 @@
     (write-string key out-port)
     (when in-color? (write-bytes (reset-color) out-port))
     (write-bytes #" : " out-port)
-    (print-jsexpr val depth (+ width (indent-width depth) (string-display-width key) 2) out-port in-color?)))
+    (print-jsexpr val depth (+ width (indent-width depth) (string-display-width key ascii?) 2) out-port in-color? ascii?)))
 
-(define (print-object-simple obj depth width out-port in-color?)
+(define (print-object-simple obj depth width out-port in-color? ascii?)
   (cond
     (in-color?
      (write-bytes (color-bytestr 'object) out-port)
@@ -126,10 +128,10 @@
   (if (pretty-print-json-sort-keys)
       (for ([elem (hash->list obj #t)]
             [i (in-naturals)])
-        (print-object-element (unsafe-car elem) (unsafe-cdr elem) i (unsafe-fx+ depth 1) width out-port in-color?))
+        (print-object-element (unsafe-car elem) (unsafe-cdr elem) i (unsafe-fx+ depth 1) width out-port in-color? ascii?))
       (for ([(k v) (in-hash obj)]
             [i (in-naturals)])
-        (print-object-element k v i (unsafe-fx+ depth 1) width out-port in-color?)))
+        (print-object-element k v i (unsafe-fx+ depth 1) width out-port in-color? ascii?)))
   (newline out-port)
   (when (unsafe-fx> depth 0)
     (indent depth out-port))
@@ -142,13 +144,13 @@
      (write-char #\} out-port)))
   -1)
 
-(define (object-display-width keys vals)
-  (+ 4
-     (* 4 (length keys))
-     (foldl (lambda (k sum) (+ (string-display-width k) sum)) 0 keys)
-     (foldl (lambda (v sum) (+ (string-display-width v) sum)) 0 vals)))
+(define (object-display-width keys vals ascii?)
+  (unsafe-fx+ 4
+     (unsafe-fx* 4 (length keys))
+     (foldl (lambda (k sum) (unsafe-fx+ (string-display-width k ascii?) sum)) 0 keys)
+     (foldl (lambda (v sum) (unsafe-fx+ (string-display-width v ascii?) sum)) 0 vals)))
 
-(define (print-object obj depth width out-port in-color?)
+(define (print-object obj depth width out-port in-color? ascii?)
   (cond
     ((= (hash-count obj) 0)
      (cond
@@ -160,10 +162,9 @@
         (write-bytes #"{}" out-port)))
      2)
     ((for/and ([val (in-hash-values obj)]) (json-atom? val))
-     (let* ([encode (if (pretty-print-json-ascii-only) 'all 'control)]
-            [keys (map (lambda (key) (jsexpr->string (symbol->immutable-string key) #:encode encode)) (hash-keys obj))]
-            [vals (map (lambda (val) (jsexpr->string val #:encode encode)) (hash-values obj))]
-            [display-width (object-display-width keys vals)])
+     (let* ([keys (map (lambda (key) (jsexpr->string (symbol->immutable-string key) #:encode ascii?)) (hash-keys obj))]
+            [vals (map (lambda (val) (jsexpr->string val #:encode ascii?)) (hash-values obj))]
+            [display-width (object-display-width keys vals ascii?)])
        (cond
          ((<= (+ width display-width) (pretty-print-json-line-width))
           (cond
@@ -194,11 +195,11 @@
              (write-char #\} out-port)))
           display-width)
          (else
-          (print-object-simple obj depth width out-port in-color?)))))
+          (print-object-simple obj depth width out-port in-color? ascii?)))))
     (else
-     (print-object-simple obj depth width out-port in-color?))))
+     (print-object-simple obj depth width out-port in-color? ascii?))))
 
-(define (print-array-simple lst depth width out-port in-color?)
+(define (print-array-simple lst depth width out-port in-color? ascii?)
   (cond
     (in-color?
      (write-bytes (color-bytestr 'array) out-port)
@@ -212,7 +213,7 @@
       (write-char #\, out-port))
     (newline out-port)
     (indent (unsafe-fx+ depth 1) out-port)
-    (print-jsexpr elem (unsafe-fx+ depth 1) width out-port in-color?))
+    (print-jsexpr elem (unsafe-fx+ depth 1) width out-port in-color? ascii?))
   (newline out-port)
   (when (unsafe-fx> depth 0)
     (indent depth out-port))
@@ -225,10 +226,10 @@
      (write-char #\] out-port)))
   -1)
 
-(define (array-display-width los)
-  (+ 4 (* 2 (length los)) (foldl (lambda (s sum) (+ (string-display-width s) sum)) 0 los)))
+(define (array-display-width los ascii?)
+  (unsafe-fx+ 4 (unsafe-fx* 2 (length los)) (foldl (lambda (s sum) (unsafe-fx+ (string-display-width s ascii?) sum)) 0 los)))
 
-(define (print-array lst depth width out-port in-color?)
+(define (print-array lst depth width out-port in-color? ascii?)
   (cond
     ((null? lst)
      (cond
@@ -240,11 +241,10 @@
         (write-bytes #"[]" out-port)))
      2)
     ((andmap json-atom? lst)
-     (let* ([encode (if (pretty-print-json-ascii-only) 'all 'control)]
-            [exprs (map (lambda (expr) (jsexpr->string expr #:encode encode)) lst)]
-            [display-width (array-display-width exprs)])
+     (let* ([exprs (map (lambda (expr) (jsexpr->string expr #:encode ascii?)) lst)]
+            [display-width (array-display-width exprs ascii?)])
        (cond
-         ((<= (+ width display-width) (pretty-print-json-line-width))
+         ((unsafe-fx<= (unsafe-fx+ width display-width) (pretty-print-json-line-width))
           (cond
             (in-color?
              (write-bytes (color-bytestr 'array) out-port)
@@ -271,6 +271,6 @@
              (write-char #\] out-port)))
           display-width)
          (else
-          (print-array-simple lst depth width out-port in-color?)))))
+          (print-array-simple lst depth width out-port in-color? ascii?)))))
     (else
-     (print-array-simple lst depth width out-port in-color?))))
+     (print-array-simple lst depth width out-port in-color? ascii?))))
