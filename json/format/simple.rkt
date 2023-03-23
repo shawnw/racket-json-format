@@ -3,7 +3,7 @@
 ; Simple pure-Racket JSON formatter. Very similiar output to jq
 
 (require racket/contract racket/function racket/port racket/symbol racket/unsafe/ops
-         json
+         json soup-lib/json
          "config.rkt" "colors.rkt")
 
 (provide
@@ -59,9 +59,9 @@
         (write-n-bytes spaces (unsafe-fx* depth width) out-port))))
 
 (define (print-jsexpr js depth out-port in-color? ascii?)
-  (cond
-    ((hash? js) (print-object js depth out-port in-color? ascii?))
-    ((list? js) (print-array js depth out-port in-color? ascii?))
+  (json-match #:unsafe js
+    (object (print-object js depth out-port in-color? ascii?))
+    (array (print-array js depth out-port in-color? ascii?))
     (else
      (when in-color?
        (write-bytes (color-bytestr (highlight-type js)) out-port))

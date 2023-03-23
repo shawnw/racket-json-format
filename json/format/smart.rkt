@@ -3,7 +3,7 @@
 ; Simple pure-Racket JSON formatter. Tries to use less vertical space than the others.
 
 (require racket/bytes racket/contract racket/function racket/port racket/string racket/symbol racket/unsafe/ops
-         json unicode-breaks soup-lib/parameter srfi/175
+         json unicode-breaks soup-lib/json soup-lib/parameter srfi/175
          "config.rkt" "colors.rkt")
 
 (define (exact-positive-fixnum? x)
@@ -73,9 +73,9 @@
         (unsafe-fx* width depth))))
 
 (define (print-jsexpr js depth width out-port in-color? ascii?)
-  (cond
-    ((hash? js) (print-object js depth width out-port in-color? ascii?))
-    ((list? js) (print-array js depth width out-port in-color? ascii?))
+  (json-match #:unsafe js
+    (object (print-object js depth width out-port in-color? ascii?))
+    (array (print-array js depth width out-port in-color? ascii?))
     (else
      (when in-color?
        (write-bytes (color-bytestr (highlight-type js)) out-port))
@@ -83,7 +83,10 @@
      (when in-color? (write-bytes (reset-color) out-port)))))
 
 (define (json-atom? js)
-  (not (or (hash? js) (list? js))))
+  (json-match #:unsafe js
+    (object #f)
+    (array #f)
+    (else #t)))
 
 (define (char-display-width ch)
   (cond
