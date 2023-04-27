@@ -105,7 +105,7 @@
   (if (or (eq? ascii? 'all) (ascii-string? str))
       (unsafe-string-length str)
       (for/sum ([grapheme (in-graphemes str)])
-        (char-display-width (unsafe-string-ref grapheme 0)))))
+        (char-display-width (string-ref grapheme 0)))))
 
 (define (print-object-element key val pos depth width out-port in-color? ascii?)
   (let ([key (jsexpr->string (symbol->immutable-string key) #:encode ascii?)])
